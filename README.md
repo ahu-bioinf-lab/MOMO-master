@@ -21,12 +21,16 @@ Download the pre-trained CDDD model using the bash script:
 ### Installing
 ```
 cd MOMO
-pip install .
+pip install pytdc
+pip install rdkit
 ```
 ### Getting Started
 For QED and Similarity optimization Task 1, please run python MOMO_task1.py
 For Plogp and Similarity optimization Task 2, please run python MOMO_task2.py
 For QED, Drd2 and Similarity optimization Task 3, please run python MOMO_task3.py
+For QED, 4LDE and Similarity optimization Task 4, please run python MOMO_task4.py
+For optimization Task 5, please run python MOMO_task5.py
+For QED, GSK3b, SA and Similarity optimization Task 6, please run python MOMO_task6.py
 
 The output results of molecules are summarized in smi_pro_tuple, and further save in .csv file.
 
