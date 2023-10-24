@@ -1,0 +1,241 @@
+#!/usr/bin/env python3
+
+import os
+import sys
+import time
+import argparse
+
+import numpy as np
+import pandas as pd
+#import matplotlib.pyplot as plt
+from property import *
+from rdkit import Chem
+from rdkit import rdBase
+from rdkit.Chem import RDConfig
+from rdkit.DataStructs import TanimotoSimilarity
+from rdkit.Chem import QED, AllChem
+from molfinder_evo import *
+#from NSGA2 import optSelect_single
+sys.path.append(os.path.join(RDConfig.RDContribDir, 'SA_Score'))
+import pygmo as pg
+from pandas import DataFrame
+from Pure_diversity import *
+#import sascorer
+
+import ModSMI
+
+parser = argparse.ArgumentParser(
+    description="This python script is made by Yongbeom Kwon")
+parser.add_argument("-i", "--input", type=str, default='./data/zink_qed.csv', help="")
+parser.add_argument("-r",
+                    "--random-seed",
+                    metavar="N",
+                    type=int,
+                    default=None,
+                    help="Random seed")
+parser.add_argument(
+    "--bank-size",
+    metavar="N",
+    type=int,
+    default=50,
+    help="",
+)
+
+parser.add_argument(
+    "--max-round",
+    metavar="N",
+    type=int,
+    default=50,#100
+    help="",
+)
+parser.add_argument(
+    "-cvg",
+    "--convergent-round",
+    metavar="N",
+    default=100,#150
+    type=int,
+    help=
+    "Convergent round; It determines when D_cut reaches a minimum value. And also It decides diversity of molecules",
+)
+parser.add_argument(
+    "-dist",
+    "--dist-coef",
+    metavar="coef. of distance",
+    type=float,
+    default=0.80,
+    help="Control Dcut",
+)
+
+parser.add_argument(
+    "-fp",
+    "--fp-method",
+    type=str,
+    default="rdkit",
+    help="Select Fingerprint Method (rdkit/morgan)",
+)
+# parser.add_argument(
+#     "-nf", "--nfeatures", metavar="N", type=int, default=2, help="a number of features"
+# )
+parser.add_argument("-v",
+                    "--verbosity",
+                    action="count",
+                    default=0,
+                    help="print error")
+args = parser.parse_args()
+
+if args.verbosity == 0:
+    rdBase.DisableLog('rdApp.*')
+
+
+
+if __name__ == "__main__":
+
+    target_value = 3
+    nfeatures = 2
+    target_round = args.convergent_round
+
+    R_d = 10**(np.log10(2 / target_value) / int(target_round))
+
+    nbank = args.bank_size  # number of bank conformations number of seeds(mating) per iteration
+    max_repeat = args.max_round
+
+    #循环迭代
+    test = pd.read_csv('./data/qed_test.csv').values
+    opt_smi = pd.read_csv('./results/task1/Molfinder_task1_mol0800_endsmiles.csv').values
+    smi_last = []  # 保留所有分子最后一代，一个分子npop个子代
+    HV = []
+    PD = []
+    runtime = []
+    SR = 0  # 记录优化成功的分子数0.9，0.4
+    t1 = time.time()  # 开始时间
+    # a = [0]  # 180
+    # b = [2]  # 200
+    a = list(range(0, 781, 20))
+    b = list(range(20, 801, 20))
+    for num in range(len(a)):
+        mm1 = a[num]
+        mm2 = b[num]
+        smi_iter_all = [['SMILES', 'mol_id', 'iter', 'qed', 'sim','single']]
+        for i in range(mm1,mm2):
+            nn = i
+            seed = test[i]
+            fp_0 = get_fp(seed[0])
+            #已跑结果是否成功
+            aa = opt_smi[:, 1] == i
+            index = np.where(aa == 1)
+            opt_smi_i = opt_smi[index]
+            # 判断是否存在行元素大于[0.9, 0.4]
+            score = opt_smi_i[:,2:4]
+            sss = np.any(np.all(score > [0.9, 0.4], axis=1))
+            if sss:
+                SR = SR+1
+                result = [nn - a[0] + 1, SR]
+                print('result-all,SR:', result)
+                print('save mol:', nn)
+            else:
+                #初始bank
+                bank = init_bank(
+                    args.input,
+                    fp_0,
+                    nfeatures,
+                    nbank,
+                    cal_features,
+                )  # zinc
+
+                first_bank = bank
+
+                origin_avg = obj_fn(bank)
+
+                plot_list = []
+
+                final_avg = origin_avg
+
+                save_bank = np.empty([max_repeat, bank.shape[0], bank.shape[1] - 1],
+                                     dtype=object)
+                hv = []
+                pure_d = []
+                time_1 = time.time()
+                for iter in range(max_repeat):
+                    print("【进度】【{0:20s}】【正在进行{1}代...】【共{2}代】". \
+                          format('▋' * int(iter / max_repeat * 20), iter, max_repeat), end='\r')
+                    child_solutions = prepare_child(bank,seed,iter,fp_0,cal_features,10,10,10,10,10)
+                    shuffled_index_ = np.random.permutation(
+                        child_solutions.shape[0])  # @4 에서 추가 됨.
+                    child_solutions = child_solutions[shuffled_index_]
+
+                    # log_f.write(f'## CHILD ### @ {np.count_nonzero(bank[:, 2] == True)} #### AFTER ##\n')
+                    try:
+                        # log_f.write(f'## BANK #### @ {np.count_nonzero(bank[:, 2] == True)} #############\n')
+                        # n_replace += update_bank(child_solutions, True)  # local update
+                        bank = update_bank_pareto(bank,
+                            child_solutions,nbank)  # non-local update
+
+                        # log_f.write(f'## BANK #### @ {np.count_nonzero(bank[:, 2] == True)} #### AFTER ##\n')
+                    except PermissionError:
+                        break
+
+                    #储存每一代bank，smiles,nn,iter,qed,sim,ave
+                    final_avg = obj_fn(bank)
+                    bank[:, 2] = True  # reset to unused solutions
+                    unique_smiles_iter = []  # 储存当前分子唯一的SMILES,可放在重启前
+                    for i in range(bank.shape[0]):
+                        if bank[i][0] not in unique_smiles_iter:
+                            unique_smiles_iter.append(bank[i][0])
+                            tuple = [bank[i][0], nn, iter, bank[i][3], bank[i][4],final_avg[i]]
+                            smi_iter_all.append(tuple)
+                    iter += 1
+
+                    #存储hv和pd
+                    if bank.shape[0] == 0:
+                        dominated_hypervolume = 0
+                        pure_div = 0
+                    else:
+                        fits = bank[:,3:].astype(np.float32)
+                        dominated_hypervolume = pg.hypervolume(np.array([-1.0 * fit for fit in fits if
+                                                                         (np.array(fit)>[0,0]).all()])).compute(
+                            np.zeros(2))
+                        pure_div = PD_cal(np.array([fit for fit in fits if (np.array(fit)>[0,0]).all()]))
+                    hv.append((dominated_hypervolume))
+                    pure_d.append(pure_div)
+
+                time_2 = time.time()
+
+                runtime_1 = (time_2 - time_1) / 60  # 扰动个数
+                print('run time:', runtime_1)
+                runtime.append((runtime_1))
+
+                HV.append(hv)
+                PD.append(pure_d)
+                final_avg = obj_fn(bank)
+                unique_smiles = []  # 储存当前分子唯一的SMILES,可放在重启前
+                rr = []
+                fits = bank[:, 3:].astype(np.float32)
+                for i in range(bank.shape[0]):
+                    if bank[i][0] not in unique_smiles:  # and endfits[i][1] >= 0.4 and endfits[i][0] >= 0.9
+                        unique_smiles.append(bank[i][0])
+                        tuple = (bank[i][0], nn, bank[i][3], bank[i][4],final_avg[i])
+                        smi_last.append(tuple)
+                        rr.append((np.array(fits[i]) >= [0.9, 0.4]).all())
+                if 1 in rr:
+                    SR = SR + 1
+
+                result = [nn - a[0] + 1, SR]
+                print('result-all,SR:', result)
+                print('save mol:', nn)
+
+                np.savetxt('./results/task1/Molfinder_task1_mol' + str(a[0]) + str(b[-1]) + '_HV_2.txt', HV, fmt='%s')
+                np.savetxt('./results/task1/Molfinder_task1_mol' + str(a[0]) + str(b[-1]) + '_PD_2.txt', PD, fmt='%s')
+                df_to_save_A_to_B = DataFrame(smi_last, columns=['SMILES', 'mol_id', 'qed', 'sim','single'])
+                df_to_save_A_to_B.to_csv('./results/task1/Molfinder_task1_mol' + str(a[0]) + str(b[-1]) + '_endsmiles_2.csv',
+                                         index=False)
+                #df_to_save_A_to_B = DataFrame(smi_iter_all, columns=['SMILES', 'mol_id', 'iter', 'qed', 'sim'])
+                #df_to_save_A_to_B.to_csv('./results/task1/MOMO_task1_mol' + str(mm1) + str(mm2) + '_iter.csv', index=False)
+                np.savetxt('./results/task1/Molfinder_task1_mol' + str(a[0]) + str(b[-1]) + '_iter_2.txt', smi_iter_all, fmt='%s')
+                np.savetxt('./results/task1/Molfinder_task1_mol' + str(a[0]) + str(b[-1]) + '_2.txt', result, fmt='%s')
+                np.savetxt('./results/task1/Molfinder_task1_mol' + str(a[0]) + str(b[-1]) + '_runtime_2.txt', runtime, fmt='%s')
+
+        '''
+        plt.plot(plot_list)
+        plt.tight_layout()
+        plt.savefig("target_plot.png")
+        '''
