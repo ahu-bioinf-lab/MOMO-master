@@ -6,7 +6,7 @@ Created on Mon Jun  6 12:45:28 2022
 """
 
 from functools import lru_cache
-import torch
+
 import numpy as np
 import pandas as pd
 import rdkit
@@ -20,7 +20,6 @@ from tdc import Oracle
 
 from rdkit import Chem, DataStructs
 
-
 def penalized_logP(mol):
     """Penalized logP.
 
@@ -32,7 +31,6 @@ def penalized_logP(mol):
     Returns:
         float: Penalized logP or NaN if mol is None.
     """
-    #mol = Chem.MolFromSmiles(mol)
     try:
         return logP(mol) - SA(mol)
     except:
@@ -48,7 +46,6 @@ def QED(mol):
     Returns:
         float: QED or NaN if mol is None.
     """
-    #mol = Chem.MolFromSmiles(mol)
     try:
         return QED_(mol)
     except:
@@ -65,12 +62,11 @@ def morgan_fingerprint(mol):
     Returns:
         np.ndarray: Fingerprint vector.
     """
-    #mol = Chem.MolFromSmiles(seq)
     if mol is None:
         return None
     return AllChem.GetMorganFingerprintAsBitVect(mol, 2, nBits=2048)
 
-def tanimoto_similarity(seq, fp_0):
+def tanimoto_similarity(mol, fp_0):
     """Tanimoto similarity between two molecules.
 
     Args:
@@ -80,29 +76,10 @@ def tanimoto_similarity(seq, fp_0):
     Returns:
         float: Tanimoto similarity.
     """
-    #mol = Chem.MolFromSmiles(seq)
-    fp = morgan_fingerprint(seq)
+    fp = morgan_fingerprint(mol)
     if fp is None:
         return 0
     return rdkit.DataStructs.TanimotoSimilarity(fp_0, fp)
-
-
-def sim_2(mol1, mol2):
-    """Tanimoto similarity between two molecules.
-
-    Args:
-        mol (rdkit.Chem.rdchem.Mol): Molecule on which to compute the metric.
-        fp_0 (array): Fingerprint vector of original molecule.
-
-    Returns:
-        float: Tanimoto similarity.
-    """
-    #mol = Chem.MolFromSmiles(mol)
-    fp_1 = morgan_fingerprint(mol1)
-    fp_2 = morgan_fingerprint(mol2)
-    if fp_1 is None:
-        return 0
-    return rdkit.DataStructs.TanimotoSimilarity(fp_1, fp_2)
 
 '''
 drd2_model = drd2_model()
@@ -110,7 +87,6 @@ def cal_DRD2(molecule_SMILES):
     return drd2_model(molecule_SMILES)
 '''
 def cal_SA(mol):
-    #mol = Chem.MolFromSmiles(mol)
     try:
         return SA(mol)
     except:
@@ -123,12 +99,14 @@ jnk_ = Oracle('JNK3')
 gsk_ = Oracle('GSK3B')
 logp_ = Oracle('logp')
 drd2_ = Oracle('drd2')
-mu = 2.230044
-sigma = 0.6526308
+
 def normalize_sa(smiles):
-    sa_score = sa_(smiles)
-    mod_score = np.maximum(sa_score, mu)
-    return np.exp(-0.5 * np.power((mod_score - mu) / sigma, 2.))
+    try:
+        sa_score = sa_(smiles)
+        normalized_sa = (10. - sa_score) / 9.
+        return normalized_sa
+    except:
+        return np.nan
 
 def jnk(smi):
     """Drug like-ness measure.
@@ -175,28 +153,39 @@ def drd2(smi):
         return np.nan
 
 
-'''
-smi='COc1cccc(O[C@@H]2CC[C@H]([NH3+])C2)n1'
-smi2 = 'COc1ccc(C(C)=O)c(OCC(=O)N2[C@@H](C)CCC[C@H]2C)c1'
-print(qed_(smi))
-print(logp_(smi))
-mol_0 = Chem.MolFromSmiles(smi)
-print(penalized_logP(mol_0))
+smi_ori = 'CC(C)C(=O)NCC[NH2+][C@@H](C)C[C@@H]1CCCCC[NH2+]1'
+mol_ori = Chem.MolFromSmiles(smi_ori)
+fp = morgan_fingerprint(mol_ori)
+smi='CC(C)C(=O)NCCC1CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC1'
+smi2 = 'CC(C)C(=O)NCCC1CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC1'
 
-print(logp_(smi2))
+print(qed_(smi))
+#print('logp',logp_(smi))
+mol_0 = Chem.MolFromSmiles(smi)
 mol_2 = Chem.MolFromSmiles(smi2)
-print(penalized_logP(mol_2))
+print('plogp_1',penalized_logP(mol_0))
+print('plogp_2',penalized_logP(mol_2))
+sim_1 = tanimoto_similarity(mol_0,fp)
+print('smi_1',sim_1)
+sim_2 = tanimoto_similarity(mol_2,fp)
+print('smi_2',sim_2)
+
+print('drd_1',drd2_(smi))
+print('drd_2',drd2_(smi2))
+'''
+# print(logp_(smi2))
+# mol_2 = Chem.MolFromSmiles(smi2)
+# print(penalized_logP(mol_2))
 
 print(jnk(smi))
 print(gsk(smi))
 print(drd2(smi))
+
+print('nom_sa:', normalize_sa(smi))
+print('sa:', sa_(smi))
+
+print('sa',SA(Chem.MolFromSmiles(smi)))
+
+
+print('nor_sa3',normalize_sa(smi))
 '''
-
-
-
-
-
-
-
-
-
