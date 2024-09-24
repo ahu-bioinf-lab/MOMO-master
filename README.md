@@ -52,10 +52,14 @@ The fitness function can wrap any function that has following properties:
 
 If you use this work, please cite the following:
 ```
-@article{xia2022molecule,
-  title={Molecule optimization via multi-objective evolutionary in implicit chemical space},
-  author={Xia, Xin and Su, Yansen and Zheng, Chunhou and Zeng, Xiangxiang},
-  journal={arXiv preprint arXiv:2212.08826},
-  year={2022}
+@article{xia2024evolutionary,
+  title={Evolutionary Multiobjective Molecule Optimization in an Implicit Chemical Space},
+  author={Xia, Xin and Liu, Yiping and Zheng, Chunhou and Zhang, Xingyi and Wu, Qingwen and Gao, Xin and Zeng, Xiangxiang and Su, Yansen},
+  journal={Journal of Chemical Information and Modeling},
+  volume={64},
+  number={13},
+  pages={5161--5174},
+  year={2024},
+  publisher={ACS Publications}
 }
 ```
