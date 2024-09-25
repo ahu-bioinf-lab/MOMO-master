@@ -4,12 +4,8 @@ Implementation of the method proposed in the paper "Evolutionary multi-objective
 
 ### Dependencies
 - [cddd](https://github.com/jrwnter/cddd)
-  - Notice: You need download the pre-trained encoder-decoder CDDD model to mapping molecules between SMILES and continuous vectors. It can be load by the bash script:
-```
-./download_default_model.sh
-```
-The link is also provided on [cddd](https://drive.google.com/file/d/1ccJEclD1dxTNTUswUvIVygqRQSawUCnJ/view?usp=sharing). 
-```
+  - Notice: You need download the pre-trained encoder-decoder CDDD model to mapping molecules between SMILES and continuous vectors. The link is also provided on [cddd](https://drive.google.com/file/d/1ccJEclD1dxTNTUswUvIVygqRQSawUCnJ/view?usp=sharing). 
+
 
 ### Installing
 - python=3.6
@@ -37,17 +33,15 @@ The link is also provided on [cddd](https://drive.google.com/file/d/1ccJEclD1dxT
 - momo/data/oripops_qeddrd/: molecules for initial population on task3.
 
 ### File Description
-- momo/sub_code/fitness.py: The script to calculate the objectives of optimization tasks.
-- sub_code/property.py: The script to calculate the molecular properties.
-- sub_code/generation_rule.py: The script to generate offspring molecules.
-- sub_code/selection_rule.py: The script to compare and select molecules.
-- sub_code/models.py: The encoder and decoder process.
-- sub_code/calc_no.py: The script to calculate the docking scores.
-- sub_code/mechanism.py: Guacamol tasks.
-- sub_code/nonDominationSort.py: the non-dominated relationships between molecules.
+- momo/sub_code/NSGA2.py: The script to generate offspring molecules and select molecules via NSGAII.
+- momo/sub_code/NSGA3.py: The script to generate offspring molecules and select molecules via NSGAIII.
+- momo/sub_code/property.py: The script to calculate molecular properties.
+- momo/sub_code/HV.py: The script to calculate HV.
+- momo/sub_code/models.py: The encoder and decoder process.
+- momo/sub_code/calc_no.py: The script to calculate the docking scores.
+- momo/sub_code/mechanism.py: Guacamol tasks.
+- momo/sub_code/nonDominationSort.py: the non-dominated relationships between molecules.
 
-- download_default_model.sh: download the pre-trained encoder-decoder.
-- environment.yml: install the environment.
 - MOMO_task1.py: optimization Task1. 
 - MOMO_task2.py: optimization Task2. 
 - MOMO_task3.py: optimization Task3. 
