@@ -6,6 +6,7 @@ Implementation of the method proposed in the paper "Evolutionary multi-objective
 - [cddd](https://github.com/jrwnter/cddd)
   - Notice: You need download the pre-trained encoder-decoder CDDD model to mapping molecules between SMILES and continuous vectors. The link is also provided on [cddd](https://drive.google.com/file/d/1ccJEclD1dxTNTUswUvIVygqRQSawUCnJ/view?usp=sharing) 
 
+###The properties are evaluated by MOSES, the file of MOSES should be download.
 
 ### Installing
 - python=3.6
@@ -98,3 +99,4 @@ If you use this work, please cite the following:
   publisher={ACS Publications}
 }
 ```
+
